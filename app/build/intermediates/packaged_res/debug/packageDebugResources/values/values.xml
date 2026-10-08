@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#FF6200EE</color>
+    <string name="app_name">Game Loader</string>
+    <style name="Theme.GameLoader" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#FF6200EE</item>
+        <item name="colorPrimaryContainer">#FFEADDFF</item>
+        <item name="colorSecondary">#FF03DAC5</item>
+    </style>
+</resources>

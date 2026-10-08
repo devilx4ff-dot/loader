@@ -1,0 +1,14 @@
+[
+    {
+        "merged": "com.gameloader.app-mergeDebugResources-34:/layout/item_game.xml",
+        "source": "com.gameloader.app-main-37:/layout/item_game.xml"
+    },
+    {
+        "merged": "com.gameloader.app-mergeDebugResources-34:/layout/activity_cloned.xml",
+        "source": "com.gameloader.app-main-37:/layout/activity_cloned.xml"
+    },
+    {
+        "merged": "com.gameloader.app-mergeDebugResources-34:/layout/activity_main.xml",
+        "source": "com.gameloader.app-main-37:/layout/activity_main.xml"
+    }
+]

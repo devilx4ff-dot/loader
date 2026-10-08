@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "com.gameloader.app-debug-35:/layout_activity_cloned.xml.flat",
+        "source": "com.gameloader.app-main-37:/layout/activity_cloned.xml"
+    },
+    {
+        "merged": "com.gameloader.app-debug-35:/layout_item_game.xml.flat",
+        "source": "com.gameloader.app-main-37:/layout/item_game.xml"
+    },
+    {
+        "merged": "com.gameloader.app-debug-35:/layout_activity_main.xml.flat",
+        "source": "com.gameloader.app-main-37:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.gameloader.app-debug-35:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "com.gameloader.app-main-37:/mipmap-anydpi-v26/ic_launcher.xml"
+    }
+]

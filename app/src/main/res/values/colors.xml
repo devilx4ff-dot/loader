@@ -1,4 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FF6200EE</color>
+    <color name="ic_launcher_background">#FF0A0E1A</color>
+
+    <!-- palette -->
+    <color name="bg_dark">#FF0A0E1A</color>
+    <color name="surface">#FF131826</color>
+    <color name="surface_high">#FF1B2234</color>
+    <color name="stroke">#FF232B40</color>
+
+    <color name="text_primary">#FFEAEFFF</color>
+    <color name="text_secondary">#FF7A8299</color>
+
+    <color name="accent_red">#FFE5322D</color>
+    <color name="accent_red_dim">#FF8E1B18</color>
+    <color name="accent_blue">#FF3B82F6</color>
+    <color name="accent_green">#FF2ED573</color>
+    <color name="accent_gold">#FFFFC542</color>
 </resources>

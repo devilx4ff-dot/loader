@@ -1097,26 +1097,17 @@ public class BlackBoxCore extends ClientConfiguration {
 
     public boolean launchApk(String packageName, int userId) {
         onBeforeMainLaunchApk(packageName, userId);
-        
-        
+
+        // Warn about missing storage permission, but don't block the launch.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!hasAllFilesAccess()) {
                 Slog.w(TAG, "All files access not granted for launching: " + packageName);
-                
-                for (AppLifecycleCallback callback : mAppLifecycleCallbacks) {
-                    if (callback.onStoragePermissionNeeded(packageName, userId)) {
-                        
-                        Slog.d(TAG, "Launch cancelled - host app handling permission request");
-                        return false;
-                    }
-                }
-                
-                Slog.w(TAG, "Launching without all files access - some file operations may fail");
             }
         }
 
         Intent launchIntentForPackage = getBPackageManager().getLaunchIntentForPackage(packageName, userId);
         if (launchIntentForPackage == null) {
+            Slog.w(TAG, "launchApk: no launch intent for " + packageName);
             return false;
         }
         startActivity(launchIntentForPackage, userId);
@@ -1132,6 +1123,15 @@ public class BlackBoxCore extends ClientConfiguration {
 
     public void uninstallPackage(String packageName) {
         getBPackageManager().uninstallPackage(packageName);
+    }
+
+    /**
+     * Copy the real OBB folder into the virtual dir for a cloned app.
+     * Call this from the UI after installPackageAsUser succeeds.
+     */
+    public void copyObbToVirtual(String packageName, int userId,
+                                 top.niunaijun.blackbox.core.env.BEnvironment.ObbCopyListener listener) {
+        top.niunaijun.blackbox.core.env.BEnvironment.copyObb(packageName, userId, listener);
     }
 
     public InstallResult installPackageAsUser(String packageName, int userId) {

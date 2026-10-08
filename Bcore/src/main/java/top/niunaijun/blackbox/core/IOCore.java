@@ -67,14 +67,7 @@ public class IOCore {
             android.util.Log.e("IOCore-REDIRECT", "IN  → " + path);
         }
 
-        // ===== HARD EXCEPTION =====
-        if (path.contains("/Android/obb/") || path.contains("/Android/data/")) {
-            if (interesting) {
-                android.util.Log.e("IOCore-REDIRECT", "EXCEPTION kept real → " + path);
-            }
-            return path;
-        }
-        // ===== END =====
+
 
         if (path.contains("/blackbox/")) {
             if (interesting) android.util.Log.e("IOCore-REDIRECT", "already blackbox → " + path);

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:id="@+id/root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingHorizontal="28dp"
+        android:paddingTop="72dp"
+        android:paddingBottom="32dp">
+
+        <!-- Logo -->
+        <ImageView
+            android:id="@+id/logo"
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@mipmap/ic_launcher"
+            android:contentDescription="Logo" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="GAME LOADER"
+            android:textColor="@color/text_primary"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="SECURE  •  PREMIUM  •  FAST"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:letterSpacing="0.22" />
+
+        <!-- License card -->
+        <LinearLayout
+            android:id="@+id/licenseCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="48dp"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LICENSE KEY"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:letterSpacing="0.2" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_input">
+
+                <EditText
+                    android:id="@+id/etLicense"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@null"
+                    android:hint="Enter your license key"
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="52dp"
+                    android:inputType="text"
+                    android:maxLines="1" />
+
+                <ImageView
+                    android:id="@+id/btnToggleVisibility"
+                    android:layout_width="44dp"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="end"
+                    android:padding="12dp"
+                    android:src="@android:drawable/ic_menu_view"
+                    android:contentDescription="Toggle visibility"
+                    android:alpha="0.5" />
+            </FrameLayout>
+
+            <!-- Activate button with spinner overlay -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="58dp"
+                android:layout_marginTop="18dp">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnActivate"
+                    android:layout_width="match_parent"
+                    android:layout_height="58dp"
+                    android:background="@drawable/bg_button_primary"
+                    android:text="ACTIVATE NOW"
+                    android:textAllCaps="true"
+                    android:textColor="#FFFFFFFF"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.08"
+                    android:stateListAnimator="@null" />
+
+                <ProgressBar
+                    android:id="@+id/activateSpinner"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+                    android:visibility="gone"
+                    android:indeterminateTint="#FFFFFFFF" />
+            </FrameLayout>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/btnReset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="26dp"
+            android:padding="10dp"
+            android:text="Reset License Key"
+            android:textColor="@color/accent_blue"
+            android:textSize="14sp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Version 1.0"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+</ScrollView>

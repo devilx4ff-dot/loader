@@ -169,8 +169,59 @@ public class BPackageManagerService extends IBPackageManagerService.Stub impleme
     @Override
     public ResolveInfo resolveActivity(Intent intent, int flags, String resolvedType, int userId) {
         if (!sUserManager.exists(userId)) return null;
+
         List<ResolveInfo> resolves = queryIntentActivities(intent, resolvedType, flags, userId);
-        return chooseBestActivity(intent, resolvedType, flags, resolves);
+        ResolveInfo ri = chooseBestActivity(intent, resolvedType, flags, resolves);
+        if (ri != null) return ri;
+
+        // Fallback: build a synthetic ActivityInfo for hardcoded launchers
+        // whose manifests the BlackBox parser can't fully read.
+        if (intent.getComponent() != null) {
+            String pkg = intent.getComponent().getPackageName();
+            String cls = intent.getComponent().getClassName();
+            ActivityInfo ai = getHardcodedActivityInfo(pkg, cls, userId);
+            if (ai != null) {
+                ResolveInfo synthetic = new ResolveInfo();
+                synthetic.activityInfo = ai;
+                Slog.d("BPackageManagerService",
+                        "resolveActivity fallback hit for " + pkg + "/" + cls);
+                return synthetic;
+            }
+        }
+        return null;
+    }
+
+    private ActivityInfo getHardcodedActivityInfo(String pkg, String cls, int userId) {
+        String expectedCls = null;
+        switch (pkg) {
+            case "com.android.chrome":
+                expectedCls = "com.google.android.apps.chrome.Main";
+                break;
+            case "com.facebook.katana":
+                expectedCls = "com.facebook.katana.LoginActivity";
+                break;
+            case "com.twitter.android":
+                expectedCls = "com.x.android.main.MainActivity";
+                break;
+            case "com.pubg.imobile":
+                expectedCls = "com.epicgames.ue4.SplashActivity";
+                break;
+        }
+        if (expectedCls == null || !expectedCls.equals(cls)) return null;
+
+        ApplicationInfo appInfo = getApplicationInfo(pkg, 0, userId);
+        if (appInfo == null) return null;
+
+        ActivityInfo ai = new ActivityInfo();
+        ai.packageName = pkg;
+        ai.name = cls;
+        ai.applicationInfo = appInfo;
+        ai.processName = appInfo.processName != null ? appInfo.processName : pkg;
+        ai.exported = true;
+        ai.launchMode = ActivityInfo.LAUNCH_MULTIPLE;
+        ai.taskAffinity = pkg;
+        ai.theme = appInfo.theme;
+        return ai;
     }
 
     @Override

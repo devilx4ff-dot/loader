@@ -24,6 +24,7 @@ import top.niunaijun.blackbox.core.system.pm.IBPackageManagerService;
 import top.niunaijun.blackbox.entity.pm.InstallOption;
 import top.niunaijun.blackbox.entity.pm.InstallResult;
 import top.niunaijun.blackbox.entity.pm.InstalledPackage;
+import top.niunaijun.blackbox.utils.Slog;
 import top.niunaijun.blackbox.utils.TransactionThrottler;
 
 
@@ -83,12 +84,12 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
     }
 
     public Intent getLaunchIntentForPackage(String packageName, int userId) {
-        
+
         if (shouldUseFallbackMode()) {
             Log.w(TAG, "Using fallback launch intent for " + packageName + " due to service failures");
             return createFallbackLaunchIntent(packageName);
         }
-        
+
         Intent intentToResolve = new Intent(Intent.ACTION_MAIN);
         intentToResolve.addCategory(Intent.CATEGORY_INFO);
         intentToResolve.setPackage(packageName);
@@ -97,9 +98,7 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
                 intentToResolve.resolveTypeIfNeeded(BlackBoxCore.getContext().getContentResolver()),
                 userId);
 
-        
         if (ris == null || ris.size() <= 0) {
-            
             intentToResolve.removeCategory(Intent.CATEGORY_INFO);
             intentToResolve.addCategory(Intent.CATEGORY_LAUNCHER);
             intentToResolve.setPackage(packageName);
@@ -109,12 +108,39 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
                     userId);
         }
         if (ris == null || ris.size() <= 0) {
-            return null;
+            // Hardcoded fallback for known apps whose manifest the parser can't read
+            return createHardcodedLaunchIntent(packageName);
         }
         Intent intent = new Intent(intentToResolve);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         intent.setClassName(ris.get(0).activityInfo.packageName,
                 ris.get(0).activityInfo.name);
+        return intent;
+    }
+
+    private Intent createHardcodedLaunchIntent(String packageName) {
+        String activity = null;
+        switch (packageName) {
+            case "com.android.chrome":
+                activity = "com.google.android.apps.chrome.Main";
+                break;
+            case "com.facebook.katana":
+                activity = "com.facebook.katana.LoginActivity";
+                break;
+            case "com.twitter.android":
+                activity = "com.x.android.main.MainActivity";
+                break;
+            case "com.pubg.imobile":
+                activity = "com.epicgames.ue4.SplashActivity";
+                break;
+        }
+        if (activity == null) return null;
+
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.setClassName(packageName, activity);
+        Slog.d(TAG, "createHardcodedLaunchIntent: " + packageName + "/" + activity);
         return intent;
     }
     
@@ -614,23 +640,12 @@ public class BPackageManager extends BlackManager<IBPackageManagerService> {
         }
         return false;
     }
-    
-    
+
+
     private boolean isInstalledFallback(String packageName) {
-        try {
-            
-            BlackBoxCore.getContext().getPackageManager().getPackageInfo(packageName, 0);
-            return true;
-        } catch (Exception e) {
-            Log.d(TAG, "Fallback isInstalled check failed for " + packageName + ", assuming not installed");
-            
-            if (packageName != null && (packageName.equals("com.media.bestrecorder.audiorecorder") || 
-                                       packageName.startsWith("top.niunaijun.blackbox"))) {
-                Log.w(TAG, "Returning true for known app " + packageName + " despite fallback failure");
-                return true;
-            }
-            return false;
-        }
+        // The host PM knows nothing about the virtual container's install state.
+        // Fallback must return false — the caller will re-check once the service is up.
+        return false;
     }
 
     public List<InstalledPackage> getInstalledPackagesAsUser(int userId) {

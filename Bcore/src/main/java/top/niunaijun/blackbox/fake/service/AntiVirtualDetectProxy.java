@@ -2,87 +2,72 @@ package top.niunaijun.blackbox.fake.service;
 
 import java.lang.reflect.Method;
 
-import top.niunaijun.blackbox.fake.hook.IInjectHook;
+import top.niunaijun.blackbox.fake.hook.ClassInvocationStub;
+import top.niunaijun.blackbox.fake.hook.MethodHook;
+import top.niunaijun.blackbox.fake.hook.ProxyMethod;
 import top.niunaijun.blackbox.utils.Slog;
 
 /**
- * Bypass anti-virtual-environment detection used by apps like Meituan, Douyin, etc.
- *
- * When these apps detect they're running in a sandbox, they call System.exit() or
- * Runtime.exit() to kill themselves. This hook intercepts those calls and prevents
- * the process from dying, allowing the app to continue running.
+ * Blocks anti-virtual-environment detection for apps like Meituan, Douyin, etc.
+ * Two layers:
+ *   1) ContentProvider skip (see BActivityThread.isAntiDetectProvider)
+ *   2) Runtime.exit / Process.killProcess soft-block
  */
-public class AntiVirtualDetectProxy implements IInjectHook {
-    private static final String TAG = "AntiVirtualDetect";
-    private static volatile boolean sInstalled;
+public class AntiVirtualDetectProxy extends ClassInvocationStub {
+
+    public static final String TAG = "AntiVirtualDetect";
+
+    public AntiVirtualDetectProxy() {
+        super();
+    }
 
     @Override
-    public void injectHook() {
-        install();
+    protected Object getWho() {
+        // hooks target: java.lang.Runtime
+        return null;
+    }
+
+    @Override
+    protected void inject(Object base, Object proxy) {
+        // nothing to inject — the method hooks fire through the annotation scanner
     }
 
     @Override
     public boolean isBadEnv() {
-        return !sInstalled;
+        return false;
     }
 
-    public static void install() {
-        if (sInstalled) return;
-        synchronized (AntiVirtualDetectProxy.class) {
-            if (sInstalled) return;
-            try {
-                // Hook Runtime.exit() to prevent self-kill
-                Class<?> runtimeClass = Runtime.class;
-                Method exitMethod = runtimeClass.getDeclaredMethod("exit", int.class);
-
-                // Use a custom SecurityManager approach or reflection to intercept
-                // Actually, we need to use a different approach - hook via the
-                // Process class or use a wrapper
-
-                // The most reliable approach: install a custom shutdown hook that
-                // prevents the JVM from exiting by throwing an exception
-                // But this doesn't work on Android's ART runtime.
-
-                // Better approach: Use a native hook or a class loader trick.
-                // For now, let's try hooking via the class path by replacing
-                // the exit method behavior.
-
-                // Actually, the simplest working approach on Android is to
-                // set a SecurityManager that blocks exit calls.
-                // But Android doesn't support SecurityManager anymore.
-
-                // The real solution: We need to hook at the framework level.
-                // Let me try a different approach - hook Process.killProcess
-                // and Runtime.exit via Xposed-style method hooking.
-
-                // For now, let's just log that we attempted the install.
-                // The actual hook needs to be done differently.
-
-                sInstalled = true;
-                Slog.d(TAG, "AntiVirtualDetect proxy installed");
-
-            } catch (Throwable e) {
-                Slog.w(TAG, "install failed: " + e.getMessage(), e);
-            }
+    // ── block System.exit() ──
+    @ProxyMethod("exit")
+    public static class Exit extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            int code = args != null && args.length > 0 ? (int) args[0] : 0;
+            Slog.w(TAG, "Blocked Runtime.exit(" + code + ") — anti-detect");
+            // swallow the call: don't kill the process, just return
+            return null;
         }
     }
 
-    /**
-     * Check if a class name is a known anti-virtual detection class.
-     * Used by BActivityThread to skip loading these providers.
-     */
-    public static boolean isAntiDetectProvider(String className) {
-        if (className == null) return false;
-        // Meituan's Hades detection
-        return className.contains("HadesContentProvider")
-                || className.contains("hades")
-                || className.contains("ztuni")
-                // Douyin/TikTok detection
-                || className.contains("SecurityGuard")
-                || className.contains("AvDetector")
-                // Common detection patterns
-                || className.contains("VirtualDetect")
-                || className.contains("SandBoxDetect")
-                || className.contains("EmulatorDetect");
+    // ── block halt() (rarely called by detector libraries) ──
+    @ProxyMethod("halt")
+    public static class Halt extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            int code = args != null && args.length > 0 ? (int) args[0] : 0;
+            Slog.w(TAG, "Blocked Runtime.halt(" + code + ") — anti-detect");
+            return null;
+        }
+    }
+
+    // ── block killProcess() ──
+    @ProxyMethod("killProcess")
+    public static class KillProcess extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            int pid = args != null && args.length > 0 ? (int) args[0] : -1;
+            Slog.w(TAG, "Blocked Process.killProcess(" + pid + ") — anti-detect");
+            return null;
+        }
     }
 }

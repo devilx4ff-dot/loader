@@ -1,8 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.GameLoader" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">#FF6200EE</item>
-        <item name="colorPrimaryContainer">#FFEADDFF</item>
-        <item name="colorSecondary">#FF03DAC5</item>
+    <style name="Theme.GameLoader" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="colorPrimary">@color/accent_red</item>
+        <item name="colorOnPrimary">#FFFFFFFF</item>
+        <item name="colorPrimaryContainer">@color/accent_red_dim</item>
+        <item name="colorOnPrimaryContainer">@color/text_primary</item>
+        <item name="colorSecondary">@color/accent_blue</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:navigationBarColor">@color/bg_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="bottomSheetDialogTheme">@style/Theme.GameLoader.BottomSheet</item>
+    </style>
+
+    <style name="Theme.GameLoader.BottomSheet" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.GameLoader.BottomSheet</item>
+    </style>
+
+    <style name="Widget.GameLoader.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="backgroundTint">@android:color/transparent</item>
     </style>
 </resources>

@@ -186,31 +186,7 @@ public class WebViewProxy extends ClassInvocationStub {
     }
 
     
-    @ProxyMethod("setDataDirectorySuffix")
-    public static class SetDataDirectorySuffix extends MethodHook {
-        @Override
-        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            try {
-                if (args != null && args.length > 0) {
-                    String suffix = (String) args[0];
-                    Slog.d(TAG, "WebView: setDataDirectorySuffix called with: " + suffix);
-                    
-                    
-                    Context context = BlackBoxCore.getContext();
-                    String packageName = context != null ? context.getPackageName() : "unknown";
-                    String userId = String.valueOf(BActivityThread.getUserId());
-                    String uniqueSuffix = suffix + "_" + userId + "_" + android.os.Process.myPid();
-                    args[0] = uniqueSuffix;
-                    Slog.d(TAG, "WebView: Using unique suffix: " + uniqueSuffix);
-                }
-                
-                return method.invoke(who, args);
-            } catch (Exception e) {
-                Slog.w(TAG, "WebView: setDataDirectorySuffix failed, continuing without suffix", e);
-                return null; 
-            }
-        }
-    }
+
 
     
     @ProxyMethod("getDataDirectory")

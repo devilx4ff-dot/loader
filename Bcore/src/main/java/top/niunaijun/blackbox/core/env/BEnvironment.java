@@ -1,11 +1,18 @@
 package top.niunaijun.blackbox.core.env;
 
+import android.os.Environment;
+import android.widget.Toast;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Locale;
 
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.BActivityThread;
 import top.niunaijun.blackbox.utils.FileUtils;
+import top.niunaijun.blackbox.utils.Slog;
 
 
 public class BEnvironment {
@@ -21,6 +28,7 @@ public class BEnvironment {
         FileUtils.mkdirs(getSystemDir());
         FileUtils.mkdirs(getCacheDir());
         FileUtils.mkdirs(getProcDir());
+
     }
 
     public static File getVirtualRoot() {
@@ -146,4 +154,106 @@ public class BEnvironment {
     public static File getXSharedPreferences(String packageName, String prefFileName) {
        return new File(BEnvironment.getDataDir(packageName, BlackBoxCore.getUserId()), "shared_prefs/" + prefFileName + ".xml");
     }
+
+    public interface ObbCopyListener {
+        void onStart(int totalFiles, long totalBytes);
+        void onProgress(int filesDone, long bytesDone, long totalBytes, String currentFile);
+        void onDone(boolean success, int filesDone, long bytesDone);
+    }
+
+    /**
+     * Copies the real OBB folder from /sdcard/Android/obb/<pkg>
+     * into the virtual obb dir so the guest app can find it.
+     * Runs on the calling thread. Pass null listener for silent copy.
+     */
+    public static void copyObb(String packageName, int userId, ObbCopyListener listener) {
+        if (packageName == null || packageName.isEmpty()) {
+            if (listener != null) listener.onDone(false, 0, 0);
+            return;
+        }
+
+        File realObbDir = new File(Environment.getExternalStorageDirectory(),
+                "Android/obb/" + packageName);
+
+        if (!realObbDir.exists()) {
+            Slog.d("BEnvironment", "copyObb: no real obb for " + packageName);
+            if (listener != null) listener.onDone(true, 0, 0); // nothing to do — not an error
+            return;
+        }
+
+        File virtualObbDir = getExternalObbDir(packageName, userId);
+        if (!virtualObbDir.exists()) {
+            virtualObbDir.mkdirs();
+        }
+
+        File[] files = realObbDir.listFiles();
+        if (files == null || files.length == 0) {
+            Slog.d("BEnvironment", "copyObb: real obb dir empty for " + packageName);
+            if (listener != null) listener.onDone(true, 0, 0);
+            return;
+        }
+
+        // compute totals
+        long totalBytes = 0;
+        int pendingFiles = 0;
+        for (File f : files) {
+            totalBytes += f.length();
+            File out = new File(virtualObbDir, f.getName());
+            if (!(out.exists() && out.length() == f.length())) {
+                pendingFiles++;
+            }
+        }
+
+        if (pendingFiles == 0) {
+            Slog.d("BEnvironment", "copyObb: obb already in virtual dir for " + packageName);
+            if (listener != null) listener.onDone(true, files.length, totalBytes);
+            return;
+        }
+
+        Slog.d("BEnvironment", "copyObb: copying " + pendingFiles + " file(s) for " + packageName);
+        if (listener != null) listener.onStart(files.length, totalBytes);
+
+        byte[] buf = new byte[64 * 1024]; // 64k buffer — faster for big obb
+        long bytesDone = 0;
+        int filesDone = 0;
+
+        for (File f : files) {
+            File out = new File(virtualObbDir, f.getName());
+            if (out.exists() && out.length() == f.length()) {
+                filesDone++;
+                bytesDone += f.length();
+                if (listener != null) {
+                    listener.onProgress(filesDone, bytesDone, totalBytes, f.getName());
+                }
+                continue;
+            }
+
+            try (FileInputStream in = new FileInputStream(f);
+                 FileOutputStream os = new FileOutputStream(out)) {
+                int n;
+                long fileWritten = 0;
+                long fileSize = f.length();
+                while ((n = in.read(buf)) > 0) {
+                    os.write(buf, 0, n);
+                    bytesDone += n;
+                    fileWritten += n;
+                    if (listener != null) {
+                        listener.onProgress(filesDone + 1, bytesDone, totalBytes, f.getName());
+                    }
+                }
+                filesDone++;
+                Slog.d("BEnvironment", "copyObb: copied " + f.getName()
+                        + " (" + fileSize + " bytes)");
+            } catch (IOException e) {
+                Slog.e("BEnvironment", "copyObb: failed to copy " + f.getAbsolutePath(), e);
+                if (listener != null) listener.onDone(false, filesDone, bytesDone);
+                return;
+            }
+        }
+
+        Slog.d("BEnvironment", "copyObb: done for " + packageName
+                + " (" + filesDone + "/" + files.length + ")");
+        if (listener != null) listener.onDone(true, filesDone, bytesDone);
+    }
 }
+

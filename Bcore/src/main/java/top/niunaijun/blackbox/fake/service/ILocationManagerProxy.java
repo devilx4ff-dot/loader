@@ -7,15 +7,13 @@ import android.util.Log;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 
-import black.android.location.BRILocationListener;
 import black.android.location.BRILocationManagerStub;
 import black.android.location.provider.BRProviderProperties;
-import black.android.location.provider.ProviderProperties;
 import black.android.os.BRServiceManager;
 import top.niunaijun.blackbox.app.BActivityThread;
-import top.niunaijun.blackbox.entity.location.BLocation;
 import top.niunaijun.blackbox.fake.frameworks.BLocationManager;
 import top.niunaijun.blackbox.fake.hook.BinderInvocationStub;
 import top.niunaijun.blackbox.fake.hook.MethodHook;
@@ -32,7 +30,8 @@ public class ILocationManagerProxy extends BinderInvocationStub {
 
     @Override
     protected Object getWho() {
-        return BRILocationManagerStub.get().asInterface(BRServiceManager.get().getService(Context.LOCATION_SERVICE));
+        return BRILocationManagerStub.get().asInterface(
+                BRServiceManager.get().getService(Context.LOCATION_SERVICE));
     }
 
     @Override
@@ -47,181 +46,197 @@ public class ILocationManagerProxy extends BinderInvocationStub {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
+        // rewrite pkg + uid args so the real service sees the host, not the guest
         MethodParameterUtils.replaceFirstAppPkg(args);
-        
-        
-        String packageName = BActivityThread.getAppPackageName();
-        if (packageName != null && packageName.equals("com.google.android.gms")) {
-            
-            if (method.getName().equals("getLastLocation") || 
-                method.getName().equals("getLastKnownLocation") ||
-                method.getName().equals("requestLocationUpdates")) {
-                Log.w(TAG, "Blocking location request from Google Play Services to prevent crash");
-                return null;
-            }
-        }
-        
+        MethodParameterUtils.replaceLastUid(args);
         return super.invoke(proxy, method, args);
     }
 
-    @ProxyMethod("registerGnssStatusCallback")
-    public static class RegisterGnssStatusCallback extends MethodHook {
-
-        @Override
-        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            
-            return true;
-        }
-    }
+    // ──────────────────────── REAL hooks ────────────────────────
 
     @ProxyMethod("getLastLocation")
     public static class GetLastLocation extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            if (BLocationManager.isFakeLocationEnable()) {
-                return BLocationManager.get().getLocation(BActivityThread.getUserId(), BActivityThread.getAppPackageName()).convert2SystemLocation();
+            if (isFakeLocationEnabled()) {
+                try {
+                    return BLocationManager.get()
+                            .getLocation(BActivityThread.getUserId(),
+                                    BActivityThread.getAppPackageName())
+                            .convert2SystemLocation();
+                } catch (Throwable ignored) { }
             }
-            
-            
             try {
                 return method.invoke(who, args);
-            } catch (Exception e) {
-                if (e.getCause() instanceof SecurityException) {
-                    Log.w(TAG, "Location permission denied, returning null for getLastLocation");
+            } catch (Throwable t) {
+                Throwable cause = t.getCause() != null ? t.getCause() : t;
+                if (cause instanceof SecurityException) {
+                    Log.w(TAG, "getLastLocation: perm denied — returning null");
                     return null;
                 }
-                throw e;
+                Log.w(TAG, "getLastLocation: " + cause.getMessage());
+                return null;
             }
         }
     }
 
     @ProxyMethod("getLastKnownLocation")
     public static class GetLastKnownLocation extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            if (BLocationManager.isFakeLocationEnable()) {
-                return BLocationManager.get().getLocation(BActivityThread.getUserId(), BActivityThread.getAppPackageName()).convert2SystemLocation();
+            if (isFakeLocationEnabled()) {
+                try {
+                    return BLocationManager.get()
+                            .getLocation(BActivityThread.getUserId(),
+                                    BActivityThread.getAppPackageName())
+                            .convert2SystemLocation();
+                } catch (Throwable ignored) { }
             }
-            
-            
             try {
                 return method.invoke(who, args);
-            } catch (Exception e) {
-                if (e.getCause() instanceof SecurityException) {
-                    Log.w(TAG, "Location permission denied, returning null for getLastKnownLocation");
-                    return null;
-                }
-                throw e;
+            } catch (Throwable t) {
+                Log.w(TAG, "getLastKnownLocation: " + t.getMessage());
+                return null;
             }
         }
     }
 
     @ProxyMethod("requestLocationUpdates")
     public static class RequestLocationUpdates extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            if (BLocationManager.isFakeLocationEnable()) {
-                if (args[1] instanceof IInterface) {
-                    IInterface listener = (IInterface) args[1];
-                    BLocationManager.get().requestLocationUpdates(listener.asBinder());
-                    return 0;
+            if (isFakeLocationEnabled()) {
+                if (args != null && args.length > 1 && args[1] instanceof IInterface) {
+                    try {
+                        IInterface listener = (IInterface) args[1];
+                        BLocationManager.get().requestLocationUpdates(listener.asBinder());
+                        return 0;
+                    } catch (Throwable ignored) { }
                 }
             }
-            
-            
             try {
                 return method.invoke(who, args);
-            } catch (Exception e) {
-                if (e.getCause() instanceof SecurityException) {
-                    Log.w(TAG, "Location permission denied for requestLocationUpdates, returning 0");
-                    return 0;
-                }
-                throw e;
+            } catch (Throwable t) {
+                Log.w(TAG, "requestLocationUpdates: " + t.getMessage());
+                return 0;
             }
         }
     }
 
     @ProxyMethod("removeUpdates")
     public static class RemoveUpdates extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            if (args[0] instanceof IInterface) {
-                IInterface listener = (IInterface) args[0];
-                BLocationManager.get().removeUpdates(listener.asBinder());
+            if (args != null && args.length > 0 && args[0] instanceof IInterface) {
+                try {
+                    IInterface listener = (IInterface) args[0];
+                    BLocationManager.get().removeUpdates(listener.asBinder());
+                    return 0;
+                } catch (Throwable ignored) { }
+            }
+            try {
+                return method.invoke(who, args);
+            } catch (Throwable t) {
                 return 0;
             }
-            return method.invoke(who, args);
         }
     }
 
     @ProxyMethod("getProviderProperties")
     public static class GetProviderProperties extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            Object providerProperties = method.invoke(who, args);
-            if (BLocationManager.isFakeLocationEnable()) {
-                BRProviderProperties.get(providerProperties)._set_mHasNetworkRequirement(false);
-                if (BLocationManager.get().getCell(BActivityThread.getUserId(), BActivityThread.getAppPackageName()) == null) {
-                    BRProviderProperties.get(providerProperties)._set_mHasCellRequirement(false);
-                }
+            Object props;
+            try {
+                props = method.invoke(who, args);
+            } catch (Throwable t) {
+                Log.w(TAG, "getProviderProperties: " + t.getMessage());
+                return null;
             }
-            return method.invoke(who, args);
+            if (props == null) return null;
+            if (isFakeLocationEnabled()) {
+                try {
+                    BRProviderProperties.get(props)._set_mHasNetworkRequirement(false);
+                    if (BLocationManager.get().getCell(BActivityThread.getUserId(),
+                            BActivityThread.getAppPackageName()) == null) {
+                        BRProviderProperties.get(props)._set_mHasCellRequirement(false);
+                    }
+                } catch (Throwable ignored) { }
+            }
+            return props;
+        }
+    }
+
+    @ProxyMethod("registerGnssStatusCallback")
+    public static class RegisterGnssStatusCallback extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            // void return — just ack and skip
+            return null;
         }
     }
 
     @ProxyMethod("removeGpsStatusListener")
     public static class RemoveGpsStatusListener extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            
-            return 0;
+            return null;
         }
     }
 
     @ProxyMethod("getBestProvider")
     public static class GetBestProvider extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            if (BLocationManager.isFakeLocationEnable()) {
+            if (isFakeLocationEnabled()) {
                 return LocationManager.GPS_PROVIDER;
             }
-            return method.invoke(who, args);
+            try {
+                return method.invoke(who, args);
+            } catch (Throwable t) {
+                return LocationManager.GPS_PROVIDER;
+            }
         }
     }
 
     @ProxyMethod("getAllProviders")
     public static class GetAllProviders extends MethodHook {
-
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            return Arrays.asList(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER);
+            return Arrays.asList(LocationManager.GPS_PROVIDER,
+                    LocationManager.NETWORK_PROVIDER);
         }
     }
 
     @ProxyMethod("isProviderEnabledForUser")
-    public static class isProviderEnabledForUser extends MethodHook {
-
+    public static class IsProviderEnabledForUser extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            if (args == null || args.length == 0) return false;
             String provider = (String) args[0];
             return Objects.equals(provider, LocationManager.GPS_PROVIDER);
         }
     }
 
     @ProxyMethod("setExtraLocationControllerPackageEnabled")
-    public static class setExtraLocationControllerPackageEnabled extends MethodHook {
-
+    public static class SetExtraLocationControllerPackageEnabled extends MethodHook {
         @Override
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
-            return 0;
+            return null;
+        }
+    }
+
+    // ──────────────────────── helpers ────────────────────────
+
+    private static boolean isFakeLocationEnabled() {
+        try {
+            String pkg = BActivityThread.getAppPackageName();
+            int userId = BActivityThread.getUserId();
+            if (pkg == null) return false;
+            return BLocationManager.get().getPattern(userId, pkg)
+                    != BLocationManager.CLOSE_MODE;
+        } catch (Throwable t) {
+            return false;
         }
     }
 }

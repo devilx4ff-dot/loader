@@ -42,64 +42,36 @@ public class NativeCore {
     @Keep
     public static int getCallingUid(int origCallingUid) {
         try {
-            
+            // real system uids pass through
             if (origCallingUid > 0 && origCallingUid < Process.FIRST_APPLICATION_UID)
                 return origCallingUid;
-            
+
+            // out of range → leave alone
             if (origCallingUid > Process.LAST_APPLICATION_UID)
                 return origCallingUid;
 
-            if (origCallingUid == BlackBoxCore.getHostUid()) {
-                
-                String appPackageName = BlackBoxCore.getAppPackageName();
-                if (appPackageName != null && appPackageName.equals("com.google.android.gms")){
-                    
-                }
-                
-                
-                
-                if (appPackageName != null && appPackageName.equals("com.google.android.webview")){
-                    return Process.myUid();
-                }
-                
-                
-                try {
-                    int callingBUid = BlackBoxCore.getCallingBUid();
-                    if (callingBUid > 0 && callingBUid < Process.LAST_APPLICATION_UID) {
-                        return callingBUid;
+            // inside a guest process we always know the uid we should report.
+            // prefer the guest's buid; fall back to the calling buid; last resort
+            // is the host's uid.
+            try {
+                if (BActivityThread.isThreadInit()) {
+                    int bUid = BActivityThread.getBUid();
+                    if (bUid > 0 && bUid < Process.LAST_APPLICATION_UID) {
+                        return bUid;
                     }
-                } catch (Exception e) {
-                    Log.w(TAG, "Error getting calling BUid: " + e.getMessage());
                 }
-                
-                
-                try {
-                    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-                    for (StackTraceElement element : stackTrace) {
-                        String className = element.getClassName();
-                        String methodName = element.getMethodName();
-                        
-                        
-                        if ((className.contains("Settings") || className.contains("FeatureFlag")) &&
-                            (methodName.contains("getString") || methodName.contains("getInt") || 
-                             methodName.contains("getLong") || methodName.contains("getFloat"))) {
-                            
-                            Log.d(TAG, "System settings access detected, using system UID to prevent mismatch");
-                            
-                            return Process.SYSTEM_UID; 
-                        }
-                    }
-                } catch (Exception e) {
-                    Log.w(TAG, "Error analyzing stack trace for UID resolution: " + e.getMessage());
+            } catch (Throwable ignored) { }
+
+            try {
+                int calling = BlackBoxCore.getCallingBUid();
+                if (calling > 0 && calling < Process.LAST_APPLICATION_UID) {
+                    return calling;
                 }
-                
-                
-                return BlackBoxCore.getHostUid();
-            }
-            return origCallingUid;
-        } catch (Exception e) {
-            Log.e(TAG, "Error in getCallingUid: " + e.getMessage());
-            
+            } catch (Throwable ignored) { }
+
+            return BlackBoxCore.getHostUid();
+        } catch (Throwable t) {
+            Log.e(TAG, "getCallingUid: " + t.getMessage());
             return Process.myUid();
         }
     }

@@ -132,15 +132,65 @@ public class IPackageManagerProxy extends BinderInvocationStub {
         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
             String packageName = (String) args[0];
             int flags = MethodParameterUtils.toInt(args[1]);
-            
-            
-            if ("com.android.vending".equals(packageName)) {
-                return createFakeGooglePlayServicesPackageInfo();
+
+// --- Chrome compat: let the real PM answer so signatures match ---
+            if ("com.android.chrome".equals(packageName)) {
+                return method.invoke(who, args);
             }
-            
-            PackageInfo packageInfo = BlackBoxCore.getBPackageManager().getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
+
+            // --- GMS compat: let the real system PM answer for GMS itself ---
+
+            if ("com.google.android.gms".equals(packageName)
+                    || "com.google.android.gsf".equals(packageName)
+                    || "com.google.android.gsf.login".equals(packageName)) {
+                return method.invoke(who, args);
+            }
+
+            // --- Facebook compat: hide split APK paths from its native integrity check ---
+            if ("com.facebook.katana".equals(packageName)
+                    || "com.facebook.orca".equals(packageName)
+                    || "com.instagram.android".equals(packageName)) {
+                Object result = method.invoke(who, args);
+                if (result instanceof PackageInfo) {
+                    PackageInfo pi = (PackageInfo) result;
+                    pi.splitNames = null;
+                    if (pi.applicationInfo != null) {
+                        pi.applicationInfo.splitNames = null;
+                        pi.applicationInfo.splitSourceDirs = null;
+                        pi.applicationInfo.splitPublicSourceDirs = null;
+                    }
+                }
+                return result;
+            }
+
+            // --- com.android.vending: fake Google Play Services info ---
+            if ("com.android.vending".equals(packageName)) {
+                PackageInfo packageInfo = BlackBoxCore.getBPackageManager()
+                        .getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
+                if (packageInfo != null) {
+                    if (packageInfo.requestedPermissions != null && packageInfo.requestedPermissionsFlags != null) {
+                        for (int i = 0; i < packageInfo.requestedPermissions.length; i++) {
+                            String perm = packageInfo.requestedPermissions[i];
+                            if (perm != null && (perm.equals(android.Manifest.permission.RECORD_AUDIO)
+                                    || perm.equals("android.permission.FOREGROUND_SERVICE_MICROPHONE")
+                                    || perm.equals(android.Manifest.permission.MODIFY_AUDIO_SETTINGS)
+                                    || perm.equals(android.Manifest.permission.CAPTURE_AUDIO_OUTPUT))) {
+                                packageInfo.requestedPermissionsFlags[i] |= PackageInfo.REQUESTED_PERMISSION_GRANTED;
+                            }
+                        }
+                    }
+                    return packageInfo;
+                }
+                if (AppSystemEnv.isOpenPackage(packageName)) {
+                    return method.invoke(who, args);
+                }
+                return null;
+            }
+
+            // --- everything else ---
+            PackageInfo packageInfo = BlackBoxCore.getBPackageManager()
+                    .getPackageInfo(packageName, flags, BlackBoxCore.getUserId());
             if (packageInfo != null) {
-                
                 if (packageInfo.requestedPermissions != null && packageInfo.requestedPermissionsFlags != null) {
                     for (int i = 0; i < packageInfo.requestedPermissions.length; i++) {
                         String perm = packageInfo.requestedPermissions[i];
@@ -159,6 +209,7 @@ public class IPackageManagerProxy extends BinderInvocationStub {
             }
             return null;
         }
+
         
         private PackageInfo createFakeGooglePlayServicesPackageInfo() {
             PackageInfo packageInfo = new PackageInfo();

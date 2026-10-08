@@ -7,7 +7,10 @@ import java.util.Map;
 
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.fake.delegate.AppInstrumentation;
-
+import top.niunaijun.blackbox.fake.service.AntiVirtualDetectProxy;
+import top.niunaijun.blackbox.fake.service.ProcessProxy;
+import top.niunaijun.blackbox.fake.service.WebViewFactoryProxy;
+import top.niunaijun.blackbox.fake.service.IWebViewUpdateServiceProxy;
 import top.niunaijun.blackbox.fake.service.HCallbackProxy;
 import top.niunaijun.blackbox.fake.service.IAccessibilityManagerProxy;
 import top.niunaijun.blackbox.fake.service.IAccountManagerProxy;
@@ -106,6 +109,11 @@ public class HookManager {
 
     public void init() {
         if (BlackBoxCore.get().isBlackProcess() || BlackBoxCore.get().isServerProcess()) {
+            addInjector(new AndroidIdProxy());
+            addInjector(new ProcessProxy());
+            addInjector(new WebViewFactoryProxy());
+            addInjector(new IWebViewUpdateServiceProxy());
+            addInjector(new AntiVirtualDetectProxy());
             addInjector(new IDisplayManagerProxy());
             addInjector(new OsStub());
             addInjector(new IActivityManagerProxy());

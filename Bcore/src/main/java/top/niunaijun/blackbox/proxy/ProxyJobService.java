@@ -9,6 +9,9 @@ import top.niunaijun.blackbox.app.dispatcher.AppJobServiceDispatcher;
 
 
 public class ProxyJobService extends JobService {
+    static {
+        try { top.niunaijun.blackbox.core.CrashHandler.install(); } catch (Throwable ignored) {}
+    }
     public static final String TAG = "StubJobService";
 
     @Override

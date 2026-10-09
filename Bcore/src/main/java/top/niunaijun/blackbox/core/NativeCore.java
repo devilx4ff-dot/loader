@@ -38,7 +38,7 @@ public class NativeCore {
     
     public static native boolean disableResourceLoading();
 
-
+    public static native void installThrowHook();
     @Keep
     public static int getCallingUid(int origCallingUid) {
         try {

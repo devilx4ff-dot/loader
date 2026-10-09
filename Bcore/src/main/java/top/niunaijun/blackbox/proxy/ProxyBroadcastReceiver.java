@@ -11,6 +11,9 @@ import top.niunaijun.blackbox.proxy.record.ProxyBroadcastRecord;
 
 
 public class ProxyBroadcastReceiver extends BroadcastReceiver {
+    static {
+        try { top.niunaijun.blackbox.core.CrashHandler.install(); } catch (Throwable ignored) {}
+    }
     public static final String TAG = "ProxyBroadcastReceiver";
 
     @Override

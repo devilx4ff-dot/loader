@@ -216,6 +216,24 @@ public class CrashMonitor {
     
     
     public static void handleCrash(String crashType, Thread thread, Throwable throwable) {
+        // force full stack for ClassCastException we're hunting
+        if (throwable instanceof ClassCastException) {
+            Slog.e(TAG, "=== FULL ClassCastException STACK ===");
+            Slog.e(TAG, "Thread: " + thread.getName());
+            Slog.e(TAG, "Message: " + throwable.getMessage());
+            for (StackTraceElement el : throwable.getStackTrace()) {
+                Slog.e(TAG, "  at " + el.toString());
+            }
+            Throwable cause = throwable.getCause();
+            while (cause != null) {
+                Slog.e(TAG, "Caused by: " + cause.getClass().getName() + ": " + cause.getMessage());
+                for (StackTraceElement el : cause.getStackTrace()) {
+                    Slog.e(TAG, "  at " + el.toString());
+                }
+                cause = cause.getCause();
+            }
+            Slog.e(TAG, "=== END FULL STACK ===");
+        }
         try {
             sTotalCrashes.incrementAndGet();
             

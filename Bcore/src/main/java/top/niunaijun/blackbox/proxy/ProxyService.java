@@ -10,10 +10,27 @@ import androidx.core.app.NotificationCompat;
 
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.app.dispatcher.AppServiceDispatcher;
+import top.niunaijun.blackbox.core.CrashHandler;
 import top.niunaijun.blackbox.utils.compat.BuildCompat;
 
 
 public class ProxyService extends Service {
+    static {
+        try {
+            top.niunaijun.blackbox.core.CrashHandler.install();
+        } catch (Throwable t) {
+            android.util.Log.e("ProxyContentProvider", "failed to install CrashHandler", t);
+        }
+    }
+    // ── install the swallow handler at class-load time in every guest process ──
+    static {
+        try {
+            CrashHandler.install();
+        } catch (Throwable t) {
+            android.util.Log.e("ProxyService", "failed to install CrashHandler", t);
+        }
+    }
+
     public static final String TAG = "StubService";
 
     @Nullable

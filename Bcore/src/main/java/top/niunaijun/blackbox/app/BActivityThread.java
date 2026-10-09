@@ -83,6 +83,13 @@ import top.niunaijun.blackbox.core.system.JarManager;
 
 
 public class BActivityThread extends IBActivityThread.Stub {
+    static {
+        try {
+            Thread.setDefaultUncaughtExceptionHandler(new CrashHandler());
+        } catch (Throwable t) {
+            android.util.Log.e("BActivityThread", "failed to install CrashHandler", t);
+        }
+    }
     public static final String TAG = "BActivityThread";
 
     private static BActivityThread sBActivityThread;
@@ -381,6 +388,11 @@ public class BActivityThread extends IBActivityThread.Stub {
         }
 
         NativeCore.init(Build.VERSION.SDK_INT);
+        try {
+            NativeCore.installThrowHook();
+        } catch (Throwable t) {
+            Slog.w(TAG, "installThrowHook failed: " + t.getMessage());
+        }
         assert packageContext != null;
         IOCore.get().enableRedirect(packageContext);
 

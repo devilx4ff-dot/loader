@@ -26,7 +26,7 @@ import top.niunaijun.blackreflection.utils.Reflector;
 
 @SuppressWarnings("unchecked")
 public class BlackReflection {
-    public static boolean DEBUG = false;
+    public static boolean DEBUG = true;
     public static boolean CACHE = false;
     private static final Map<Class<?>, Object> sProxyCache = new HashMap<>();
     private static final Map<Class<?>, Object> sProxyWithExceptionCache = new HashMap<>();

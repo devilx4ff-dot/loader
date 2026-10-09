@@ -44,10 +44,10 @@ public class SimpleCrashFix {
             Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
                 @Override
                 public void uncaughtException(Thread thread, Throwable throwable) {
-                    
-                    if (isNullContextCrash(throwable)) {
-                        Slog.w(TAG, "Caught null context crash, preventing crash: " + throwable.getMessage());
-                        BlackBoxCore.get().sendLogs("CRASH DETECTED (Caught/NullContext): " + throwable.getMessage(), true);
+                    if (throwable instanceof ClassCastException
+                            && throwable.getMessage() != null
+                            && throwable.getMessage().contains("snb")) {
+
                         return; 
                     }
 

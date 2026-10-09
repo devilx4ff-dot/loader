@@ -1519,4 +1519,52 @@ public class IConnectivityManagerProxy extends BinderInvocationStub {
             }
         }
     }
+    // ─────────────────────────────────────────────────────────────
+    //  bindProcessToNetwork / setProcessDefaultNetwork
+    //
+    //  cronet's init calls ConnectivityManager.bindProcessToNetwork,
+    //  which requires NETWORK_STACK or MAINLINE_NETWORK_STACK. guests
+    //  don't hold those. short-circuit to stop the cronet abort.
+    // ─────────────────────────────────────────────────────────────
+
+    @ProxyMethod("bindProcessToNetwork")
+    public static class BindProcessToNetwork extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            Slog.d(TAG, "ConnectivityManager: skipping bindProcessToNetwork");
+            return true;
+        }
+    }
+
+    @ProxyMethod("setProcessDefaultNetwork")
+    public static class SetProcessDefaultNetwork extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            Slog.d(TAG, "ConnectivityManager: skipping setProcessDefaultNetwork");
+            return true;
+        }
+    }
+
+    @ProxyMethod("getProcessDefaultNetwork")
+    public static class GetProcessDefaultNetwork extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            return null;
+        }
+    }
+    // ─────────────────────────────────────────────────────────────
+    //  getNetworkInfoForUid(int uid, boolean ignoreBlocked)
+    //
+    //  cronet calls this during init to figure out the connection type.
+    //  the server checks NETWORK_STACK / MAINLINE_NETWORK_STACK against
+    //  the caller uid — guests don't hold either. short-circuit locally
+    //  and return a synthetic WIFI NetworkInfo.
+    // ─────────────────────────────────────────────────────────────
+    @ProxyMethod("getNetworkInfoForUid")
+    public static class GetNetworkInfoForUid extends MethodHook {
+        @Override
+        protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+            return createNetworkInfo(ConnectivityManager.TYPE_WIFI, 0, "WIFI", "");
+        }
+    }
 }

@@ -33,6 +33,7 @@ LOCAL_SRC_FILES := BoxCore.cpp \
 hidden_api.cpp \
 IO.cpp \
 Utils/elf_util.cpp \
+Utils/ThrowHook.cpp \
 Hook/DexFileHook.cpp \
 Hook/FileSystemHook.cpp \
 Utils/VirtualSpoof.cpp \

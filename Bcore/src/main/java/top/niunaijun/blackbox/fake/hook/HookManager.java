@@ -8,6 +8,9 @@ import java.util.Map;
 import top.niunaijun.blackbox.BlackBoxCore;
 import top.niunaijun.blackbox.fake.delegate.AppInstrumentation;
 import top.niunaijun.blackbox.fake.service.AntiVirtualDetectProxy;
+import top.niunaijun.blackbox.fake.service.ILocaleManagerProxy;
+import top.niunaijun.blackbox.fake.service.ISafetyCenterManagerProxy;
+import top.niunaijun.blackbox.fake.service.ITelecomServiceProxy;
 import top.niunaijun.blackbox.fake.service.ProcessProxy;
 import top.niunaijun.blackbox.fake.service.WebViewFactoryProxy;
 import top.niunaijun.blackbox.fake.service.IWebViewUpdateServiceProxy;
@@ -60,7 +63,6 @@ import top.niunaijun.blackbox.fake.service.LevelDbProxy;
 import top.niunaijun.blackbox.fake.service.DeviceIdProxy;
 import top.niunaijun.blackbox.fake.service.GoogleAccountManagerProxy;
 import top.niunaijun.blackbox.fake.service.AuthenticationProxy;
-import top.niunaijun.blackbox.fake.service.AndroidIdProxy;
 import top.niunaijun.blackbox.fake.service.AudioPermissionProxy;
 import top.niunaijun.blackbox.fake.service.NetworkPermissionCompat;
 
@@ -109,7 +111,9 @@ public class HookManager {
 
     public void init() {
         if (BlackBoxCore.get().isBlackProcess() || BlackBoxCore.get().isServerProcess()) {
-            addInjector(new AndroidIdProxy());
+            addInjector(new ISafetyCenterManagerProxy());
+            addInjector(new ILocaleManagerProxy());
+            addInjector(new ITelecomServiceProxy());
             addInjector(new ProcessProxy());
             addInjector(new WebViewFactoryProxy());
             addInjector(new IWebViewUpdateServiceProxy());
@@ -149,7 +153,6 @@ public class HookManager {
             addInjector(new DeviceIdProxy());
             addInjector(new GoogleAccountManagerProxy());
             addInjector(new AuthenticationProxy());
-            addInjector(new AndroidIdProxy());
             addInjector(new AudioPermissionProxy());
             addInjector(new ILocationManagerProxy());
             addInjector(new IStorageManagerProxy());
